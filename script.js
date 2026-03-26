@@ -7,6 +7,7 @@ const ethicalSlider = document.getElementById("ethicalSlider");
 const greenValue = document.getElementById("greenValue");
 const ethicalValue = document.getElementById("ethicalValue");
 const typeFilter = document.getElementById("typeFilter");
+const sortFilter = document.getElementById("sortFilter");
 const matchCount = document.getElementById("matchCount");
 const avgGreen = document.getElementById("avgGreen");
 const avgEthical = document.getElementById("avgEthical");
@@ -90,10 +91,11 @@ function render() {
   greenValue.textContent = greenSlider.value;
   ethicalValue.textContent = ethicalSlider.value;
 
-  const q = searchInput.value.trim().toLowerCase();
-  const greenMin = Number(greenSlider.value);
-  const ethicalMin = Number(ethicalSlider.value);
-  const kind = typeFilter.value;
+const q = searchInput.value.trim().toLowerCase();
+const greenMin = Number(greenSlider.value);
+const ethicalMin = Number(ethicalSlider.value);
+const kind = typeFilter.value;
+const sortBy = sortFilter.value;
 
   const filtered = instruments
     .filter((item) => kind === "all" || item.type === kind)
@@ -106,7 +108,13 @@ function render() {
         item.exchange.toLowerCase().includes(q)
       );
     })
-    .sort((a, b) => (b.green + b.ethical) - (a.green + a.ethical));
+.sort((a, b) => {
+  if (sortBy === "green_desc") return b.green - a.green;
+  if (sortBy === "ethical_desc") return b.ethical - a.ethical;
+  if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+  if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+  return (b.green + b.ethical) - (a.green + a.ethical);
+});
 
   matchCount.textContent = filtered.length;
   avgGreen.textContent = filtered.length
@@ -162,9 +170,9 @@ function render() {
     .join("");
 }
 
-[searchInput, greenSlider, ethicalSlider, typeFilter].forEach((el) =>
+[searchInput, greenSlider, ethicalSlider, typeFilter, sortFilter].forEach((el) => el.addEventListener("input", render));
   el.addEventListener("input", render)
 );
-typeFilter.addEventListener("change", render);
+[typeFilter, sortFilter].forEach((el) => el.addEventListener("change", render));
 
 loadInstruments();
