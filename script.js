@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://qiomohedtrymxjswimgd.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_MRwULv_nrHkW7v15V5zY5A_qo0AgNu";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_MRwULv_nrHkW7v15V5zY5A_qo0AgNuA";
 
 document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("search");
