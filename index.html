@@ -8,66 +8,77 @@
 </head>
 <body>
   <div class="page">
-    <aside class="sidebar card">
-      <h1>Investor Screener</h1>
-      <p class="muted">Filter tradeable companies and ETFs by green and ethical score.</p>
+    <aside class="sidebar">
+      <div class="panel">
+        <h1>Investor Screener</h1>
+        <p class="muted">
+          Filter tradeable stocks and ETFs by green and ethical score.
+        </p>
 
-      <label class="field-label" for="search">Search</label>
-      <input id="search" type="text" placeholder="Search name, ticker, exchange" />
+        <label class="field-label" for="search">Search</label>
+        <input
+          id="search"
+          type="text"
+          placeholder="Search name, ticker, exchange"
+        />
 
-      <div class="slider-block">
         <div class="slider-row">
           <label class="field-label" for="greenSlider">Minimum green score</label>
-          <span id="greenValue" class="pill">55</span>
+          <span id="greenValue" class="value-pill">55</span>
         </div>
         <input id="greenSlider" type="range" min="0" max="100" step="1" value="55" />
-      </div>
 
-      <div class="slider-block">
         <div class="slider-row">
           <label class="field-label" for="ethicalSlider">Minimum ethical score</label>
-          <span id="ethicalValue" class="pill">55</span>
+          <span id="ethicalValue" class="value-pill">55</span>
         </div>
         <input id="ethicalSlider" type="range" min="0" max="100" step="1" value="55" />
-      </div>
 
-      <label class="field-label" for="typeFilter">Instrument type</label>
-      <select id="typeFilter">
-        <option value="all">All</option>
-        <option value="stock">Stocks</option>
-        <option value="etf">ETFs</option>
-      </select>
-<label class="field-label" for="sortFilter">Sort by</label>
-<select id="sortFilter">
-  <option value="combined_desc">Best overall</option>
-  <option value="green_desc">Highest green</option>
-  <option value="ethical_desc">Highest ethical</option>
-  <option value="name_asc">Name A–Z</option>
-  <option value="name_desc">Name Z–A</option>
-</select>
-      <div class="info-box">
-        <strong>How scoring works</strong>
-        <p>Stocks use direct company scores. ETFs use weighted average look-through scoring from their underlying holdings.</p>
+        <label class="field-label" for="typeFilter">Instrument type</label>
+        <select id="typeFilter">
+          <option value="all">All</option>
+          <option value="stock">Stocks</option>
+          <option value="etf">ETFs</option>
+        </select>
+
+        <label class="field-label" for="sortFilter">Sort by</label>
+        <select id="sortFilter">
+          <option value="combined_desc">Best overall</option>
+          <option value="green_desc">Highest green</option>
+          <option value="ethical_desc">Highest ethical</option>
+          <option value="name_asc">Name A–Z</option>
+          <option value="name_desc">Name Z–A</option>
+        </select>
+
+        <div class="helper-box">
+          <strong>How it works</strong>
+          <p>
+            Stocks use stored company scores from your database.
+            ETFs currently use stored ETF scores from your database.
+          </p>
+        </div>
       </div>
     </aside>
 
-    <main class="content">
-      <section class="stats">
-        <div class="card stat-card">
+    <main class="main">
+      <div class="stats-grid">
+        <div class="stat-card">
           <div class="stat-label">Matches</div>
-          <div id="matchCount" class="stat-value">0</div>
+          <div class="stat-value" id="matchCount">0</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Avg green</div>
-          <div id="avgGreen" class="stat-value">0</div>
+        <div class="stat-card">
+          <div class="stat-label">Average green</div>
+          <div class="stat-value" id="avgGreen">0</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label">Avg ethical</div>
-          <div id="avgEthical" class="stat-value">0</div>
+        <div class="stat-card">
+          <div class="stat-label">Average ethical</div>
+          <div class="stat-value" id="avgEthical">0</div>
         </div>
-      </section>
+      </div>
 
-      <section id="results" class="results"></section>
+      <div id="results" class="results-grid">
+        <div class="card no-results">Loading...</div>
+      </div>
     </main>
   </div>
 
