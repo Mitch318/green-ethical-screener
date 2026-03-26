@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Green & Ethical Investor Screener</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar card">
+      <h1>Investor Screener</h1>
+      <p class="muted">Filter tradeable companies and ETFs by green and ethical score.</p>
+
+      <label class="field-label" for="search">Search</label>
+      <input id="search" type="text" placeholder="Search name, ticker, exchange" />
+
+      <div class="slider-block">
+        <div class="slider-row">
+          <label class="field-label" for="greenSlider">Minimum green score</label>
+          <span id="greenValue" class="pill">55</span>
+        </div>
+        <input id="greenSlider" type="range" min="0" max="100" step="1" value="55" />
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-row">
+          <label class="field-label" for="ethicalSlider">Minimum ethical score</label>
+          <span id="ethicalValue" class="pill">55</span>
+        </div>
+        <input id="ethicalSlider" type="range" min="0" max="100" step="1" value="55" />
+      </div>
+
+      <label class="field-label" for="typeFilter">Instrument type</label>
+      <select id="typeFilter">
+        <option value="all">All</option>
+        <option value="stock">Stocks</option>
+        <option value="etf">ETFs</option>
+      </select>
+
+      <div class="info-box">
+        <strong>How scoring works</strong>
+        <p>Stocks use direct company scores. ETFs use weighted average look-through scoring from their underlying holdings.</p>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="stats">
+        <div class="card stat-card">
+          <div class="stat-label">Matches</div>
+          <div id="matchCount" class="stat-value">0</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Avg green</div>
+          <div id="avgGreen" class="stat-value">0</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Avg ethical</div>
+          <div id="avgEthical" class="stat-value">0</div>
+        </div>
+      </section>
+
+      <section id="results" class="results"></section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
