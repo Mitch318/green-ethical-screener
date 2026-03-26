@@ -37,7 +37,14 @@
         <option value="stock">Stocks</option>
         <option value="etf">ETFs</option>
       </select>
-
+<label class="field-label" for="sortFilter">Sort by</label>
+<select id="sortFilter">
+  <option value="combined_desc">Best overall</option>
+  <option value="green_desc">Highest green</option>
+  <option value="ethical_desc">Highest ethical</option>
+  <option value="name_asc">Name A–Z</option>
+  <option value="name_desc">Name Z–A</option>
+</select>
       <div class="info-box">
         <strong>How scoring works</strong>
         <p>Stocks use direct company scores. ETFs use weighted average look-through scoring from their underlying holdings.</p>
