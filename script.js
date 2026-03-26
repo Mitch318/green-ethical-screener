@@ -1,122 +1,5 @@
-const companyScores = {
-  MSFT: {
-    name: "Microsoft",
-    ticker: "MSFT",
-    type: "stock",
-    exchange: "NASDAQ",
-    green: 82,
-    ethical: 74,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "Strong disclosure; moderate governance and supply-chain watch items."
-  },
-  NEE: {
-    name: "NextEra Energy",
-    ticker: "NEE",
-    type: "stock",
-    exchange: "NYSE",
-    green: 88,
-    ethical: 69,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "Strong renewables exposure; standard utility governance profile."
-  },
-  ORSTED: {
-    name: "Ørsted",
-    ticker: "ORSTED",
-    type: "stock",
-    exchange: "CPH",
-    green: 91,
-    ethical: 78,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "High green alignment; relatively strong transition profile."
-  },
-  TSLA: {
-    name: "Tesla",
-    ticker: "TSLA",
-    type: "stock",
-    exchange: "NASDAQ",
-    green: 72,
-    ethical: 49,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "Clean-tech exposure offset by recurring governance and labour concerns."
-  },
-  XOM: {
-    name: "Exxon Mobil",
-    ticker: "XOM",
-    type: "stock",
-    exchange: "NYSE",
-    green: 18,
-    ethical: 38,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "Low green profile due to fossil-fuel intensity."
-  },
-  PG: {
-    name: "Procter & Gamble",
-    ticker: "PG",
-    type: "stock",
-    exchange: "NYSE",
-    green: 61,
-    ethical: 64,
-    sources: ["CDP", "WBA/CHRB", "Sanctions/Exclusions"],
-    sourceLinks: [
-      { label: "CDP scores", url: "https://www.cdp.net/en/data/scores" },
-      { label: "Corporate Human Rights Benchmark", url: "https://www.worldbenchmarkingalliance.org/benchmark/corporate-human-rights-benchmark" },
-      { label: "OFAC sanctions lists", url: "https://ofac.treasury.gov/sanctions-list-service" }
-    ],
-    notes: "Moderate sustainability profile with broad consumer exposure."
-  }
-};
-
-const etfHoldings = {
-  ESGV: [
-    { ticker: "MSFT", weight: 0.35 },
-    { ticker: "NEE", weight: 0.20 },
-    { ticker: "PG", weight: 0.20 },
-    { ticker: "TSLA", weight: 0.15 },
-    { ticker: "XOM", weight: 0.10 }
-  ],
-  ICLN: [
-    { ticker: "ORSTED", weight: 0.45 },
-    { ticker: "NEE", weight: 0.25 },
-    { ticker: "TSLA", weight: 0.20 },
-    { ticker: "PG", weight: 0.10 }
-  ]
-};
-
-const instruments = [
-  { ticker: "MSFT", name: "Microsoft", type: "stock", exchange: "NASDAQ" },
-  { ticker: "NEE", name: "NextEra Energy", type: "stock", exchange: "NYSE" },
-  { ticker: "ORSTED", name: "Ørsted", type: "stock", exchange: "CPH" },
-  { ticker: "TSLA", name: "Tesla", type: "stock", exchange: "NASDAQ" },
-  { ticker: "XOM", name: "Exxon Mobil", type: "stock", exchange: "NYSE" },
-  { ticker: "PG", name: "Procter & Gamble", type: "stock", exchange: "NYSE" },
-  { ticker: "ESGV", name: "Vanguard ESG U.S. Stock ETF", type: "etf", exchange: "NYSE Arca" },
-  { ticker: "ICLN", name: "iShares Global Clean Energy ETF", type: "etf", exchange: "NASDAQ" }
-];
+const SUPABASE_URL = "https://qiomohedtrymxjswimgd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_MRwULv_nrHkW7v15V5zY5A_qo0AgNuA";
 
 const searchInput = document.getElementById("search");
 const greenSlider = document.getElementById("greenSlider");
@@ -129,11 +12,7 @@ const avgGreen = document.getElementById("avgGreen");
 const avgEthical = document.getElementById("avgEthical");
 const results = document.getElementById("results");
 
-function weightedAverage(items, field) {
-  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
-  if (!totalWeight) return 0;
-  return items.reduce((sum, item) => sum + (companyScores[item.ticker][field] * item.weight), 0) / totalWeight;
-}
+let instruments = [];
 
 function scoreLabel(score) {
   if (score >= 80) return "High";
@@ -142,24 +21,69 @@ function scoreLabel(score) {
   return "Low";
 }
 
-function enrichInstrument(item) {
-  if (item.type === "stock") {
-    return { ...item, ...companyScores[item.ticker], holdings: [] };
+async function loadInstruments() {
+  results.innerHTML = '<div class="card no-results">Loading data from Supabase...</div>';
+
+  if (
+    !SUPABASE_URL ||
+    !SUPABASE_ANON_KEY ||
+    SUPABASE_URL.includes("PASTE_YOUR") ||
+    SUPABASE_ANON_KEY.includes("PASTE_YOUR")
+  ) {
+    results.innerHTML = '<div class="card no-results">Add your Supabase URL and Publishable Key in script.js first.</div>';
+    return;
   }
 
-  const holdings = etfHoldings[item.ticker] || [];
-  return {
-    ...item,
-    green: weightedAverage(holdings, "green"),
-    ethical: weightedAverage(holdings, "ethical"),
-    holdings,
-    sources: ["Weighted constituent company scores"],
-    sourceLinks: [
-      { label: "ETF constituents source", url: "https://finnhub.io/docs/api/etfs-holdings" },
-      { label: "Alternative ETF holdings source", url: "https://site.financialmodelingprep.com/developer/docs/stable/holdings" }
-    ],
-    notes: "ETF scores are calculated from underlying holdings and weights."
-  };
+  const endpoint = `${SUPABASE_URL}/rest/v1/instruments?select=*&order=name.asc`;
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Supabase error ${response.status}: ${errorText}`);
+    }
+
+    const rows = await response.json();
+
+    instruments = rows.map((row) => ({
+      ticker: row.ticker,
+      name: row.name,
+      type: row.type,
+      exchange: row.exchange || "",
+      green: Number(row.green_score || 0),
+      ethical: Number(row.ethical_score || 0),
+      sources: [row.green_source_label, row.ethical_source_label].filter(Boolean),
+      sourceLinks: [
+        row.green_source_url
+          ? { label: row.green_source_label || "Green source", url: row.green_source_url }
+          : null,
+        row.ethical_source_url
+          ? { label: row.ethical_source_label || "Ethical source", url: row.ethical_source_url }
+          : null,
+      ].filter(Boolean),
+      notes:
+        row.type === "etf"
+          ? "ETF score currently stored in the database. Later we can calculate this live from holdings."
+          : "Company score loaded from the Supabase database.",
+      holdings: [],
+    }));
+
+    render();
+  } catch (error) {
+    console.error(error);
+    results.innerHTML = `
+      <div class="card no-results">
+        Could not load data from Supabase.<br /><br />
+        <strong>Error:</strong> ${error.message}
+      </div>
+    `;
+  }
 }
 
 function render() {
@@ -171,54 +95,42 @@ function render() {
   const ethicalMin = Number(ethicalSlider.value);
   const kind = typeFilter.value;
 
-  const enriched = instruments.map(enrichInstrument);
-
-  const filtered = enriched
-    .filter(item => kind === "all" || item.type === kind)
-    .filter(item => item.green >= greenMin && item.ethical >= ethicalMin)
-    .filter(item => {
+  const filtered = instruments
+    .filter((item) => kind === "all" || item.type === kind)
+    .filter((item) => item.green >= greenMin && item.ethical >= ethicalMin)
+    .filter((item) => {
       if (!q) return true;
-      return item.name.toLowerCase().includes(q) || item.ticker.toLowerCase().includes(q) || item.exchange.toLowerCase().includes(q);
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.ticker.toLowerCase().includes(q) ||
+        item.exchange.toLowerCase().includes(q)
+      );
     })
     .sort((a, b) => (b.green + b.ethical) - (a.green + a.ethical));
 
   matchCount.textContent = filtered.length;
-  avgGreen.textContent = filtered.length ? Math.round(filtered.reduce((s, i) => s + i.green, 0) / filtered.length) : 0;
-  avgEthical.textContent = filtered.length ? Math.round(filtered.reduce((s, i) => s + i.ethical, 0) / filtered.length) : 0;
+  avgGreen.textContent = filtered.length
+    ? Math.round(filtered.reduce((s, i) => s + i.green, 0) / filtered.length)
+    : 0;
+  avgEthical.textContent = filtered.length
+    ? Math.round(filtered.reduce((s, i) => s + i.ethical, 0) / filtered.length)
+    : 0;
 
   if (!filtered.length) {
     results.innerHTML = '<div class="card no-results">No companies or ETFs match your current filters.</div>';
     return;
   }
 
-  results.innerHTML = filtered.map(item => {
-    const averageScore = (item.green + item.ethical) / 2;
-    const holdingsHtml = item.type === "etf" && item.holdings.length
-      ? `
-        <div class="holdings">
-          <strong>Look-through holdings</strong>
-          ${item.holdings.map(h => {
-            const company = companyScores[h.ticker];
-            return `
-              <div class="holding-row">
-                <div>
-                  <div><strong>${h.ticker}</strong></div>
-                  <div class="meta">${company.name}</div>
-                </div>
-                <div><strong>${Math.round(h.weight * 100)}%</strong><div class="meta">weight</div></div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      `
-      : "";
+  results.innerHTML = filtered
+    .map((item) => {
+      const averageScore = (item.green + item.ethical) / 2;
 
-    return `
+      return `
       <article class="card instrument-card">
         <div class="top-row">
           <div>
             <h3 class="instrument-name">${item.name}</h3>
-            <div class="meta">${item.ticker} • ${item.type.toUpperCase()} • ${item.exchange}${item.type === "etf" ? ` • ${item.holdings.length} holdings used` : ""}</div>
+            <div class="meta">${item.ticker} • ${item.type.toUpperCase()} • ${item.exchange}</div>
           </div>
           <div class="status-badge">${scoreLabel(averageScore)}</div>
         </div>
@@ -234,21 +146,25 @@ function render() {
         </div>
 
         <div class="badge-row">
-          ${item.sources.map(source => `<span class="badge">${source}</span>`).join("")}
+          ${item.sources.map((source) => `<span class="badge">${source}</span>`).join("")}
         </div>
 
         <div class="link-row">
-          ${item.sourceLinks.map(link => `<a href="${link.url}" target="_blank" rel="noreferrer">${link.label}</a>`).join("")}
+          ${item.sourceLinks
+            .map((link) => `<a href="${link.url}" target="_blank" rel="noreferrer">${link.label}</a>`)
+            .join("")}
         </div>
 
         <div class="notes">${item.notes}</div>
-        ${holdingsHtml}
       </article>
     `;
-  }).join("");
+    })
+    .join("");
 }
 
-[searchInput, greenSlider, ethicalSlider, typeFilter].forEach(el => el.addEventListener("input", render));
-[typeFilter].forEach(el => el.addEventListener("change", render));
+[searchInput, greenSlider, ethicalSlider, typeFilter].forEach((el) =>
+  el.addEventListener("input", render)
+);
+typeFilter.addEventListener("change", render);
 
-render();
+loadInstruments();
