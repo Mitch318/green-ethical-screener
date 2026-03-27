@@ -16,6 +16,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let instruments = [];
 
+  const headers = {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    Accept: "application/json",
+  };
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function scoreLabel(score) {
     if (score >= 80) return "High";
     if (score >= 60) return "Good";
@@ -28,18 +43,41 @@ document.addEventListener("DOMContentLoaded", () => {
     ethicalValue.textContent = ethicalSlider.value;
   }
 
-  function dedupeLinks(links) {
+  function prettyGroup(group) {
+    return String(group || "other")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  function dedupeByKey(items, keyFn) {
     const seen = new Set();
-    return links.filter((link) => {
-      if (!link || !link.url) return false;
-      const key = `${link.label}|${link.url}`;
+    return items.filter((item) => {
+      const key = keyFn(item);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   }
 
-  async function loadInstruments() {
+  async function fetchTable(tableName, selectClause, extraQuery = "") {
+    const endpoint =
+      `${SUPABASE_URL}/rest/v1/${tableName}?select=${encodeURIComponent(selectClause)}` +
+      extraQuery;
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`${tableName} ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  async function loadData() {
     syncSliderLabels();
     results.innerHTML = '<div class="card no-results">Loading data from Supabase...</div>';
 
@@ -54,64 +92,148 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const endpoint =
-      `${SUPABASE_URL}/rest/v1/instruments?select=` +
-      encodeURIComponent(
-        "ticker,name,type,exchange,green_score,ethical_score,green_source_label,green_source_url,ethical_source_label,ethical_source_url"
-      ) +
-      "&order=name.asc";
-
     try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-          Accept: "application/json",
-        },
+      const [instrumentRows, profileRows, sourceRows, holdingRows] = await Promise.all([
+        fetchTable(
+          "instruments",
+          "id,ticker,name,type,exchange,green_score,ethical_score,green_source_label,green_source_url,ethical_source_label,ethical_source_url",
+          "&order=name.asc"
+        ),
+        fetchTable(
+          "instrument_profiles",
+          "instrument_id,short_synopsis,sector,industry,country,website_url,issuer_url,updated_at"
+        ),
+        fetchTable(
+          "instrument_sources",
+          "instrument_id,source_group,source_label,source_url,raw_value,normalized_score,notes,as_of_date",
+          "&order=source_group.asc"
+        ),
+        fetchTable(
+          "etf_holdings",
+          "etf_instrument_id,holding_instrument_id,weight,as_of_date,source_label,source_url",
+          "&order=weight.desc"
+        ),
+      ]);
+
+      const instrumentsById = new Map(instrumentRows.map((row) => [row.id, row]));
+
+      const profilesByInstrumentId = new Map();
+      profileRows.forEach((row) => {
+        profilesByInstrumentId.set(row.instrument_id, row);
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Supabase error ${response.status}: ${errorText}`);
-      }
+      const sourcesByInstrumentId = new Map();
+      sourceRows.forEach((row) => {
+        if (!sourcesByInstrumentId.has(row.instrument_id)) {
+          sourcesByInstrumentId.set(row.instrument_id, []);
+        }
+        sourcesByInstrumentId.get(row.instrument_id).push(row);
+      });
 
-      const rows = await response.json();
+      const holdingsByEtfId = new Map();
+      holdingRows.forEach((row) => {
+        if (!holdingsByEtfId.has(row.etf_instrument_id)) {
+          holdingsByEtfId.set(row.etf_instrument_id, []);
+        }
+        holdingsByEtfId.get(row.etf_instrument_id).push(row);
+      });
 
-      instruments = rows.map((row) => {
-        const links = dedupeLinks([
-          row.green_source_url
-            ? {
-                label: row.green_source_label || "Green source",
-                url: row.green_source_url,
-              }
-            : null,
-          row.ethical_source_url
-            ? {
-                label: row.ethical_source_label || "Ethical source",
-                url: row.ethical_source_url,
-              }
-            : null,
-        ]);
+      instruments = instrumentRows.map((row) => {
+        const profile = profilesByInstrumentId.get(row.id) || null;
+        const tableSources = sourcesByInstrumentId.get(row.id) || [];
+        const legacySources = [];
 
-        const sourceBadges = [
-          row.green_source_label || null,
-          row.ethical_source_label || null,
-        ].filter(Boolean);
+        if (row.green_source_label && row.green_source_url) {
+          legacySources.push({
+            source_group: "green",
+            source_label: row.green_source_label,
+            source_url: row.green_source_url,
+            raw_value: null,
+            normalized_score: row.green_score,
+            notes: "Legacy green source from instruments table",
+            as_of_date: null,
+          });
+        }
+
+        if (row.ethical_source_label && row.ethical_source_url) {
+          legacySources.push({
+            source_group: "ethical",
+            source_label: row.ethical_source_label,
+            source_url: row.ethical_source_url,
+            raw_value: null,
+            normalized_score: row.ethical_score,
+            notes: "Legacy ethical source from instruments table",
+            as_of_date: null,
+          });
+        }
+
+        const allSources = dedupeByKey(
+          [...tableSources, ...legacySources],
+          (s) => `${s.source_group}|${s.source_label}|${s.source_url}`
+        );
+
+        const sourceGroups = [...new Set(allSources.map((s) => prettyGroup(s.source_group)))];
+
+        const holdings = (holdingsByEtfId.get(row.id) || []).map((holding) => {
+          const target = instrumentsById.get(holding.holding_instrument_id);
+          return {
+            ticker: target?.ticker || "Unknown",
+            name: target?.name || "Unknown holding",
+            weight: Number(holding.weight || 0),
+            asOfDate: holding.as_of_date || "",
+            sourceLabel: holding.source_label || "",
+            sourceUrl: holding.source_url || "",
+          };
+        });
+
+        const websiteLinks = [];
+        if (profile?.website_url) {
+          websiteLinks.push({
+            source_group: "profile",
+            source_label: "Company website",
+            source_url: profile.website_url,
+            raw_value: null,
+            normalized_score: null,
+            notes: null,
+            as_of_date: null,
+          });
+        }
+        if (profile?.issuer_url) {
+          websiteLinks.push({
+            source_group: "profile",
+            source_label: "Issuer website",
+            source_url: profile.issuer_url,
+            raw_value: null,
+            normalized_score: null,
+            notes: null,
+            as_of_date: null,
+          });
+        }
+
+        const mergedSources = dedupeByKey(
+          [...allSources, ...websiteLinks],
+          (s) => `${s.source_group}|${s.source_label}|${s.source_url}`
+        );
 
         return {
+          id: row.id,
           ticker: row.ticker || "",
           name: row.name || "",
-          type: (row.type || "stock").toLowerCase(),
+          type: String(row.type || "stock").toLowerCase(),
           exchange: row.exchange || "",
           green: Number(row.green_score || 0),
           ethical: Number(row.ethical_score || 0),
-          sources: [...new Set(sourceBadges)],
-          sourceLinks: links,
-          notes:
-            (row.type || "").toLowerCase() === "etf"
-              ? "ETF score currently stored in the database. Later this can be calculated live from holdings."
-              : "Company score loaded from the Supabase database.",
+          synopsis:
+            profile?.short_synopsis ||
+            (String(row.type || "").toLowerCase() === "etf"
+              ? "No ETF synopsis added yet."
+              : "No company synopsis added yet."),
+          sector: profile?.sector || "",
+          industry: profile?.industry || "",
+          country: profile?.country || "",
+          sources: mergedSources,
+          sourceGroups,
+          holdings,
         };
       });
 
@@ -121,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       results.innerHTML = `
         <div class="card no-results">
           Could not load data from Supabase.<br /><br />
-          <strong>Error:</strong> ${error.message}
+          <strong>Error:</strong> ${escapeHtml(error.message)}
         </div>
       `;
     }
@@ -144,7 +266,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return (
           item.name.toLowerCase().includes(q) ||
           item.ticker.toLowerCase().includes(q) ||
-          item.exchange.toLowerCase().includes(q)
+          item.exchange.toLowerCase().includes(q) ||
+          item.sector.toLowerCase().includes(q) ||
+          item.industry.toLowerCase().includes(q) ||
+          item.country.toLowerCase().includes(q)
         );
       });
 
@@ -157,11 +282,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     matchCount.textContent = filtered.length;
-
     avgGreen.textContent = filtered.length
       ? Math.round(filtered.reduce((sum, item) => sum + item.green, 0) / filtered.length)
       : 0;
-
     avgEthical.textContent = filtered.length
       ? Math.round(filtered.reduce((sum, item) => sum + item.ethical, 0) / filtered.length)
       : 0;
@@ -176,15 +299,94 @@ document.addEventListener("DOMContentLoaded", () => {
       .map((item) => {
         const averageScore = (item.green + item.ethical) / 2;
 
+        const metaBits = [item.exchange, item.sector, item.industry, item.country].filter(Boolean);
+
+        const groupedSources = item.sources.reduce((acc, src) => {
+          const key = prettyGroup(src.source_group);
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(src);
+          return acc;
+        }, {});
+
+        const sourceGroupsHtml = Object.entries(groupedSources)
+          .map(([groupName, entries]) => {
+            const uniqueEntries = dedupeByKey(
+              entries,
+              (s) => `${s.source_label}|${s.source_url}|${s.notes}|${s.raw_value}`
+            );
+
+            return `
+              <div class="source-group-block">
+                <div class="section-subtitle">${escapeHtml(groupName)}</div>
+                <div class="source-link-list">
+                  ${uniqueEntries
+                    .map((src) => {
+                      const extraParts = [
+                        src.raw_value ? `Raw: ${escapeHtml(src.raw_value)}` : "",
+                        src.normalized_score != null ? `Score: ${escapeHtml(src.normalized_score)}` : "",
+                        src.as_of_date ? `As of: ${escapeHtml(src.as_of_date)}` : "",
+                        src.notes ? escapeHtml(src.notes) : "",
+                      ].filter(Boolean);
+
+                      return `
+                        <div class="source-link-item">
+                          <a href="${escapeHtml(src.source_url)}" target="_blank" rel="noreferrer">
+                            ${escapeHtml(src.source_label)}
+                          </a>
+                          ${extraParts.length ? `<div class="source-extra">${extraParts.join(" • ")}</div>` : ""}
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        const holdingsPreview =
+          item.type === "etf" && item.holdings.length
+            ? `
+              <div class="section-block">
+                <div class="section-title">Top holdings preview</div>
+                <div class="holding-list">
+                  ${item.holdings
+                    .slice(0, 6)
+                    .map(
+                      (holding) => `
+                        <div class="holding-row">
+                          <div class="holding-left">
+                            <strong>${escapeHtml(holding.ticker)}</strong>
+                            <span>${escapeHtml(holding.name)}</span>
+                          </div>
+                          <div class="holding-right">${Math.round(holding.weight * 100) / 100}%</div>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+            : item.type === "etf"
+            ? `
+              <div class="section-block">
+                <div class="section-title">Top holdings preview</div>
+                <div class="muted-small">No ETF holdings added yet.</div>
+              </div>
+            `
+            : "";
+
         return `
           <article class="card instrument-card">
             <div class="top-row">
               <div>
-                <h3 class="instrument-name">${item.name}</h3>
-                <div class="meta">${item.ticker} • ${item.type.toUpperCase()} • ${item.exchange}</div>
+                <h3 class="instrument-name">${escapeHtml(item.name)}</h3>
+                <div class="meta">${escapeHtml(item.ticker)} • ${escapeHtml(item.type.toUpperCase())}</div>
               </div>
-              <div class="status-badge">${scoreLabel(averageScore)}</div>
+              <div class="status-badge">${escapeHtml(scoreLabel(averageScore))}</div>
             </div>
+
+            ${metaBits.length ? `<div class="meta meta-secondary">${escapeHtml(metaBits.join(" • "))}</div>` : ""}
 
             <div class="score-block">
               <div class="score-title">
@@ -206,20 +408,25 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </div>
 
-            <div class="badge-row">
-              ${item.sources.map((source) => `<span class="badge">${source}</span>`).join("")}
+            ${
+              item.sourceGroups.length
+                ? `<div class="badge-row">${item.sourceGroups
+                    .map((group) => `<span class="badge">${escapeHtml(group)}</span>`)
+                    .join("")}</div>`
+                : ""
+            }
+
+            <div class="section-block">
+              <div class="section-title">Synopsis</div>
+              <div class="notes">${escapeHtml(item.synopsis)}</div>
             </div>
 
-            <div class="link-row">
-              ${item.sourceLinks
-                .map(
-                  (link) =>
-                    `<a href="${link.url}" target="_blank" rel="noreferrer">${link.label}</a>`
-                )
-                .join("")}
-            </div>
+            ${holdingsPreview}
 
-            <div class="notes">${item.notes}</div>
+            <div class="section-block">
+              <div class="section-title">Supporting data</div>
+              ${sourceGroupsHtml || '<div class="muted-small">No supporting sources added yet.</div>'}
+            </div>
           </article>
         `;
       })
@@ -233,5 +440,5 @@ document.addEventListener("DOMContentLoaded", () => {
   sortFilter.addEventListener("change", render);
 
   syncSliderLabels();
-  loadInstruments();
+  loadData();
 });
